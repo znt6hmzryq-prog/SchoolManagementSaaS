@@ -1,5 +1,36 @@
 "use client";
 
+import React from "react";
+import Layout from "@/components/dashboard/Layout";
+import StatCard from "@/components/dashboard/StatCard";
+import { useQuery } from "@tanstack/react-query";
+import { getStudents, getTeachers, getClasses, getAttendance } from "@/services/api";
+
+export default function DashboardPage() {
+  const { data: students = [] } = useQuery(["students"], getStudents);
+  const { data: teachers = [] } = useQuery(["teachers"], getTeachers);
+  const { data: classes = [] } = useQuery(["classes"], getClasses);
+  const { data: attendance = [] } = useQuery(["attendance"], getAttendance);
+
+  // Token check
+  React.useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/login";
+  }, []);
+
+  return (
+    <Layout>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard title="Total Students" value={students.length} />
+        <StatCard title="Total Teachers" value={teachers.length} />
+        <StatCard title="Total Classes" value={classes.length} />
+        <StatCard title="Today's Attendance" value={attendance.length} />
+      </div>
+    </Layout>
+  );
+}
+"use client";
+
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import api from "@/services/api";

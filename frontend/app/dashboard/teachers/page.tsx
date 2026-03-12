@@ -1,5 +1,70 @@
 "use client";
 
+import React from "react";
+import Layout from "@/components/dashboard/Layout";
+import DataTable from "@/components/dashboard/DataTable";
+import ModalForm from "@/components/dashboard/ModalForm";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getTeachers, createTeacher } from "@/services/api";
+
+export default function TeachersPage() {
+  const qc = useQueryClient();
+  const { data: teachers = [] } = useQuery(["teachers"], getTeachers);
+  const [open, setOpen] = React.useState(false);
+
+  const mutation = useMutation(createTeacher, {
+    onSuccess: () => qc.invalidateQueries(["teachers"]),
+  });
+
+  React.useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/login";
+  }, []);
+
+  return (
+    <Layout>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">Teachers</h2>
+        <button onClick={() => setOpen(true)} className="px-3 py-2 bg-blue-600 text-white rounded">Add Teacher</button>
+      </div>
+
+      <DataTable
+        columns={[
+          { key: "first_name", label: "First Name", render: (r:any) => `${r.first_name} ${r.last_name}` },
+          { key: "email", label: "Email" },
+          { key: "phone", label: "Phone" },
+          { key: "subject", label: "Subject" },
+        ]}
+        data={teachers}
+      />
+
+      <ModalForm open={open} onClose={() => setOpen(false)} title="Add Teacher">
+        <TeacherForm onSubmit={(payload:any)=>{ mutation.mutate(payload, { onSuccess: ()=>setOpen(false) }); }} />
+      </ModalForm>
+    </Layout>
+  );
+}
+
+function TeacherForm({ onSubmit }: any) {
+  const [first_name, setFirstName] = React.useState("");
+  const [last_name, setLastName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [subject, setSubject] = React.useState("");
+
+  return (
+    <form onSubmit={(e)=>{ e.preventDefault(); onSubmit({ first_name, last_name, email, phone, subject }); }} className="space-y-3">
+      <input required placeholder="First name" className="w-full p-2 border" value={first_name} onChange={e=>setFirstName(e.target.value)}/>
+      <input required placeholder="Last name" className="w-full p-2 border" value={last_name} onChange={e=>setLastName(e.target.value)}/>
+      <input placeholder="Email" className="w-full p-2 border" value={email} onChange={e=>setEmail(e.target.value)}/>
+      <input placeholder="Phone" className="w-full p-2 border" value={phone} onChange={e=>setPhone(e.target.value)}/>
+      <input placeholder="Subject" className="w-full p-2 border" value={subject} onChange={e=>setSubject(e.target.value)}/>
+      <div className="flex justify-end"><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Create</button></div>
+    </form>
+  );
+}
+"use client";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTeachers, createTeacher, updateTeacher, deleteTeacher } from "@/services/teacherService";
 import { useState, useMemo } from "react";

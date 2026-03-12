@@ -23,16 +23,28 @@ class AuthController extends Controller
             'school_name' => 'required|string|max:255',
             'admin_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6'
+            'password' => 'required|min:6',
+            'country' => 'sometimes|string|max:100',
+            'plan' => 'sometimes|string|in:basic,pro,enterprise',
         ]);
 
         $school = $schoolSetup->setup($request->all());
 
-        AuditLogger::log($school->users->first(), 'school_created', 'school', $school->id);
+        // Get the created admin user
+        $admin = $school->users->first();
+
+        // Log audit
+        AuditLogger::log($admin, 'school_created', 'school', $school->id);
+
+        // Create Sanctum token for the admin
+        $token = $admin->createToken('api-token')->plainTextToken;
 
         return response()->json([
-            'message' => 'School registered successfully',
-            'school' => $school
+            'token' => $token,
+            'user' => $admin,
+            'role' => $admin->role,
+            'school_id' => $school->id,
+            'message' => 'School registered successfully'
         ], 201);
     }
 
@@ -80,7 +92,9 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => $user
+            'user' => $user,
+            'role' => $user->role,
+            'school_id' => $user->school_id,
         ]);
     }
 

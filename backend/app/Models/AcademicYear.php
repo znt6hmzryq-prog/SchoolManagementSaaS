@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Scopes\SchoolScope;
 
-class AcademicYear extends Model
+class AcademicYear extends BaseTenantModel
 {
     protected $fillable = [
         'school_id',
@@ -12,4 +12,10 @@ class AcademicYear extends Model
         'start_date',
         'end_date'
     ];
+
+    protected static function booted(): void
+    {
+        parent::booted();
+        static::addGlobalScope(new SchoolScope);
+    }
 }
