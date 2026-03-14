@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Stripe\Webhook;
 use App\Models\School;
+use App\Models\Subscription;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -77,6 +78,18 @@ class StripeWebhookController extends Controller
                             'subscription_expires_at' => Carbon::now()->addMonth(),
                         ]);
 
+                        // Create or update subscription record
+                        Subscription::updateOrCreate(
+                            ['school_id' => $school->id],
+                            [
+                                'stripe_customer_id' => $session->customer ?? null,
+                                'stripe_subscription_id' => $session->subscription ?? null,
+                                'plan' => $planType,
+                                'status' => 'active',
+                                'trial_ends_at' => null,
+                            ]
+                        );
+
                         // Create invoice
                         $invoice = Invoice::create([
                             'school_id' => $school->id,
@@ -102,11 +115,42 @@ class StripeWebhookController extends Controller
 
                 Log::info('Stripe invoice payment succeeded');
 
+                $invoiceObj = $event->data->object;
+                $stripeSubId = $invoiceObj->subscription ?? null;
+
+                if ($stripeSubId) {
+                    $sub = Subscription::where('stripe_subscription_id', $stripeSubId)->first();
+                    if ($sub) {
+                        $sub->update(['status' => 'active']);
+                        $school = $sub->school;
+                        if ($school) {
+                            $school->update([
+                                'subscription_status' => 'active',
+                                'subscription_expires_at' => Carbon::now()->addMonth(),
+                            ]);
+                        }
+                    }
+                }
+
             break;
 
             case 'customer.subscription.deleted':
 
                 Log::info('Stripe subscription cancelled');
+
+                $subObj = $event->data->object;
+                $stripeSubId = $subObj->id ?? ($subObj->subscription ?? null);
+
+                if ($stripeSubId) {
+                    $sub = Subscription::where('stripe_subscription_id', $stripeSubId)->first();
+                    if ($sub) {
+                        $sub->update(['status' => 'cancelled']);
+                        $school = $sub->school;
+                        if ($school) {
+                            $school->update(['subscription_status' => 'cancelled']);
+                        }
+                    }
+                }
 
             break;
 

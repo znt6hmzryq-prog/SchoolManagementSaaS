@@ -9,11 +9,12 @@ import { getGrades, submitGrade } from "@/services/api";
 
 export default function GradesPage() {
   const qc = useQueryClient();
-  const { data: grades = [] } = useQuery(["grades"], getGrades);
+  const { data: grades = [] } = useQuery({ queryKey: ["grades"], queryFn: getGrades });
   const [open, setOpen] = React.useState(false);
 
-  const mutation = useMutation(submitGrade, {
-    onSuccess: () => qc.invalidateQueries(["grades"]),
+  const mutation = useMutation({
+    mutationFn: submitGrade,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["grades"] }),
   });
 
   React.useEffect(() => {

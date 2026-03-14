@@ -1,95 +1,26 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Layout from "@/components/dashboard/Layout";
 import DataTable from "@/components/dashboard/DataTable";
 import ModalForm from "@/components/dashboard/ModalForm";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getTeachers, createTeacher } from "@/services/api";
+import api, { getTeachers, createTeacher } from "@/services/api";
 
 export default function TeachersPage() {
   const qc = useQueryClient();
-  const { data: teachers = [] } = useQuery(["teachers"], getTeachers);
-  const [open, setOpen] = React.useState(false);
-
-  const mutation = useMutation(createTeacher, {
-    onSuccess: () => qc.invalidateQueries(["teachers"]),
-  });
-
-  React.useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) window.location.href = "/login";
-  }, []);
-
-  return (
-    <Layout>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Teachers</h2>
-        <button onClick={() => setOpen(true)} className="px-3 py-2 bg-blue-600 text-white rounded">Add Teacher</button>
-      </div>
-
-      <DataTable
-        columns={[
-          { key: "first_name", label: "First Name", render: (r:any) => `${r.first_name} ${r.last_name}` },
-          { key: "email", label: "Email" },
-          { key: "phone", label: "Phone" },
-          { key: "subject", label: "Subject" },
-        ]}
-        data={teachers}
-      />
-
-      <ModalForm open={open} onClose={() => setOpen(false)} title="Add Teacher">
-        <TeacherForm onSubmit={(payload:any)=>{ mutation.mutate(payload, { onSuccess: ()=>setOpen(false) }); }} />
-      </ModalForm>
-    </Layout>
-  );
-}
-
-function TeacherForm({ onSubmit }: any) {
-  const [first_name, setFirstName] = React.useState("");
-  const [last_name, setLastName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [subject, setSubject] = React.useState("");
-
-  return (
-    <form onSubmit={(e)=>{ e.preventDefault(); onSubmit({ first_name, last_name, email, phone, subject }); }} className="space-y-3">
-      <input required placeholder="First name" className="w-full p-2 border" value={first_name} onChange={e=>setFirstName(e.target.value)}/>
-      <input required placeholder="Last name" className="w-full p-2 border" value={last_name} onChange={e=>setLastName(e.target.value)}/>
-      <input placeholder="Email" className="w-full p-2 border" value={email} onChange={e=>setEmail(e.target.value)}/>
-      <input placeholder="Phone" className="w-full p-2 border" value={phone} onChange={e=>setPhone(e.target.value)}/>
-      <input placeholder="Subject" className="w-full p-2 border" value={subject} onChange={e=>setSubject(e.target.value)}/>
-      <div className="flex justify-end"><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Create</button></div>
-    </form>
-  );
-}
-"use client";
-
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getTeachers, createTeacher, updateTeacher, deleteTeacher } from "@/services/teacherService";
-import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/Button";
-import { Modal } from "@/components/ui/Modal";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { Table } from "@/components/ui/Table";
-import { Pagination } from "@/components/ui/Pagination";
-import { Spinner } from "@/components/ui/Spinner";
-import { Toast } from "@/components/ui/Toast";
-
-export default function TeachersPage() {
-  const queryClient = useQueryClient();
-  const { data: teachers, isLoading } = useQuery({
-    queryKey: ["teachers"],
-    queryFn: getTeachers,
-  });
-
+  const { data: teachers = [], isLoading } = useQuery({ queryKey: ["teachers"], queryFn: getTeachers });
   const [showModal, setShowModal] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/login";
+  }, []);
 
   const [form, setForm] = useState({
     first_name: "",
@@ -102,33 +33,33 @@ export default function TeachersPage() {
   const createMutation = useMutation({
     mutationFn: createTeacher,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teachers"] });
-      setToast({ message: "Teacher created successfully", type: "success" });
+      qc.invalidateQueries({ queryKey: ["teachers"] });
+      setToast("Teacher created successfully");
       setShowModal(false);
       resetForm();
     },
-    onError: () => setToast({ message: "Error creating teacher", type: "error" }),
+    onError: () => setToast("Error creating teacher"),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => updateTeacher(id, data),
+    mutationFn: ({ id, data }: { id: number; data: any }) => api.put(`/teachers/${id}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teachers"] });
-      setToast({ message: "Teacher updated successfully", type: "success" });
+      qc.invalidateQueries({ queryKey: ["teachers"] });
+      setToast("Teacher updated successfully");
       setShowModal(false);
       setEditingTeacher(null);
       resetForm();
     },
-    onError: () => setToast({ message: "Error updating teacher", type: "error" }),
+    onError: () => setToast("Error updating teacher"),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteTeacher,
+    mutationFn: (id: number) => api.delete(`/teachers/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teachers"] });
-      setToast({ message: "Teacher deleted successfully", type: "success" });
+      qc.invalidateQueries({ queryKey: ["teachers"] });
+      setToast("Teacher deleted successfully");
     },
-    onError: () => setToast({ message: "Error deleting teacher", type: "error" }),
+    onError: () => setToast("Error deleting teacher"),
   });
 
   const filteredTeachers = useMemo(() => {
@@ -189,101 +120,92 @@ export default function TeachersPage() {
     setShowModal(true);
   };
 
-  if (isLoading) return <div className="flex justify-center items-center h-64"><Spinner size="lg" /></div>;
+  if (isLoading) return <div className="flex justify-center items-center h-64">Loading...</div>;
 
   return (
-    <div>
+    <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Teachers</h1>
-        <Button onClick={openAddModal}>Add Teacher</Button>
+        <button onClick={openAddModal} className="px-3 py-2 bg-blue-600 text-white rounded">Add Teacher</button>
       </div>
 
       <div className="mb-4">
-        <Input
+        <input
           type="text"
           placeholder="Search teachers..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
+          className="max-w-sm p-2 border"
         />
       </div>
 
-      <Table headers={["ID", "First Name", "Last Name", "Email", "Phone", "Subject", "Actions"]}>
-        {paginatedTeachers.map((teacher: any) => (
-          <tr key={teacher.id}>
-            <td className="px-6 py-4 whitespace-nowrap">{teacher.id}</td>
-            <td className="px-6 py-4 whitespace-nowrap">{teacher.first_name}</td>
-            <td className="px-6 py-4 whitespace-nowrap">{teacher.last_name}</td>
-            <td className="px-6 py-4 whitespace-nowrap">{teacher.email}</td>
-            <td className="px-6 py-4 whitespace-nowrap">{teacher.phone}</td>
-            <td className="px-6 py-4 whitespace-nowrap">{teacher.subject}</td>
-            <td className="px-6 py-4 whitespace-nowrap space-x-2">
-              <Button size="sm" onClick={() => handleEdit(teacher)}>Edit</Button>
-              <Button size="sm" variant="danger" onClick={() => handleDelete(teacher.id)}>Delete</Button>
-            </td>
-          </tr>
-        ))}
-      </Table>
-
-      {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
+      <div className="mb-6">
+        <DataTable
+          columns={[
+            { key: "first_name", label: "First Name", render: (r: any) => `${r.first_name} ${r.last_name}` },
+            { key: "email", label: "Email" },
+            { key: "phone", label: "Phone" },
+            { key: "subject", label: "Subject" },
+            { key: "actions", label: "Actions", render: (r: any) => (
+              <div className="space-x-2">
+                <button onClick={() => handleEdit(r)} className="px-2 py-1 bg-gray-200 rounded">Edit</button>
+                <button onClick={() => handleDelete(r.id)} className="px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+              </div>
+            ) }
+          ]}
+          data={teachers}
         />
-      )}
+      </div>
 
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={editingTeacher ? "Edit Teacher" : "Add Teacher"}
-      >
-        <form onSubmit={handleSubmit}>
-          <Input
-            label="First Name"
+      {/* ModalForm for add/edit teacher */}
+      <ModalForm open={showModal} onClose={() => setShowModal(false)} title={editingTeacher ? "Edit Teacher" : "Add Teacher"}>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            className="w-full p-2 border"
+            placeholder="First name"
             value={form.first_name}
             onChange={(e) => setForm({ ...form, first_name: e.target.value })}
             required
           />
-          <Input
-            label="Last Name"
+          <input
+            className="w-full p-2 border"
+            placeholder="Last name"
             value={form.last_name}
             onChange={(e) => setForm({ ...form, last_name: e.target.value })}
             required
           />
-          <Input
-            label="Email"
+          <input
+            className="w-full p-2 border"
+            placeholder="Email"
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            required
           />
-          <Input
-            label="Phone"
+          <input
+            className="w-full p-2 border"
+            placeholder="Phone"
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
-          <Input
-            label="Subject"
+          <input
+            className="w-full p-2 border"
+            placeholder="Subject"
             value={form.subject}
             onChange={(e) => setForm({ ...form, subject: e.target.value })}
           />
-          <div className="flex justify-end space-x-2 mt-4">
-            <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">{editingTeacher ? "Update" : "Create"}</Button>
+
+          <div className="flex justify-end">
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">{editingTeacher ? "Update" : "Create"}</button>
           </div>
         </form>
-      </Modal>
+      </ModalForm>
 
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
+        <div className="fixed right-4 bottom-4 bg-green-600 text-white px-4 py-2 rounded shadow">
+          {toast}
+          <button className="ml-3 underline" onClick={() => setToast(null)}>Close</button>
+        </div>
       )}
-    </div>
+    </Layout>
   );
 }

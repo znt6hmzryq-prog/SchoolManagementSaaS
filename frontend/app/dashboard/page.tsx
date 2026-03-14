@@ -1,38 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Layout from "@/components/dashboard/Layout";
 import StatCard from "@/components/dashboard/StatCard";
 import { useQuery } from "@tanstack/react-query";
 import { getStudents, getTeachers, getClasses, getAttendance } from "@/services/api";
-
-export default function DashboardPage() {
-  const { data: students = [] } = useQuery(["students"], getStudents);
-  const { data: teachers = [] } = useQuery(["teachers"], getTeachers);
-  const { data: classes = [] } = useQuery(["classes"], getClasses);
-  const { data: attendance = [] } = useQuery(["attendance"], getAttendance);
-
-  // Token check
-  React.useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) window.location.href = "/login";
-  }, []);
-
-  return (
-    <Layout>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard title="Total Students" value={students.length} />
-        <StatCard title="Total Teachers" value={teachers.length} />
-        <StatCard title="Total Classes" value={classes.length} />
-        <StatCard title="Today's Attendance" value={attendance.length} />
-      </div>
-    </Layout>
-  );
-}
-"use client";
-
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
 import api from "@/services/api";
 import DashboardCard from "@/components/DashboardCard";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -44,6 +16,17 @@ export default function DashboardPage() {
     const demoMode = localStorage.getItem("demoMode");
     setIsDemo(demoMode === "true");
   }, []);
+
+  // Redirect if no token
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/login";
+  }, []);
+
+  const { data: students = [] } = useQuery({ queryKey: ["students"], queryFn: getStudents });
+  const { data: teachers = [] } = useQuery({ queryKey: ["teachers"], queryFn: getTeachers });
+  const { data: classes = [] } = useQuery({ queryKey: ["classes"], queryFn: getClasses });
+  const { data: attendance = [] } = useQuery({ queryKey: ["attendance"], queryFn: getAttendance });
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard"],
@@ -70,61 +53,72 @@ export default function DashboardPage() {
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <div>
-      {isDemo && (
-        <div className="bg-blue-600 text-white px-4 py-3 mb-6 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <strong>Demo Mode:</strong> You're viewing a demo of School Management SaaS. Some features are limited.
+    <Layout>
+      <div>
+        {isDemo && (
+          <div className="bg-blue-600 text-white px-4 py-3 mb-6 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <strong>Demo Mode:</strong> You're viewing a demo of School Management SaaS. Some features are limited.
+              </div>
+              <button
+                onClick={() => {
+                  localStorage.removeItem("demoMode");
+                  window.location.reload();
+                }}
+                className="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded text-sm"
+              >
+                Exit Demo
+              </button>
             </div>
-            <button
-              onClick={() => {
-                localStorage.removeItem("demoMode");
-                window.location.reload();
-              }}
-              className="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded text-sm"
-            >
-              Exit Demo
-            </button>
+          </div>
+        )}
+
+        <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+
+        {/* Stat cards: grid with 4 columns */}
+        <div className="grid grid-cols-4 gap-6 mb-8">
+          <StatCard title="👩‍🎓 Total Students" value={Array.isArray(students) ? students.length : data?.total_students ?? 0} />
+          <StatCard title="👨‍🏫 Total Teachers" value={Array.isArray(teachers) ? teachers.length : data?.total_teachers ?? 0} />
+          <StatCard title="🏫 Total Classes" value={Array.isArray(classes) ? classes.length : data?.total_classes ?? 0} />
+          <StatCard title="📅 Today's Attendance" value={Array.isArray(attendance) ? attendance.length : 0} />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <DashboardCard title="Total Students" value={data?.total_students} />
+          <DashboardCard title="Total Teachers" value={data?.total_teachers} />
+          <DashboardCard title="Total Classes" value={data?.total_classes} />
+          <DashboardCard title="Monthly Revenue" value={`$${data?.monthly_revenue}`} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold mb-4">Student Growth</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={studentGrowthData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="students" stroke="#8884d8" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold mb-4">Revenue Chart</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="revenue" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
-      )}
-
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <DashboardCard title="Total Students" value={data?.total_students} />
-        <DashboardCard title="Total Teachers" value={data?.total_teachers} />
-        <DashboardCard title="Total Classes" value={data?.total_classes} />
-        <DashboardCard title="Monthly Revenue" value={`$${data?.monthly_revenue}`} />
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Student Growth</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={studentGrowthData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="students" stroke="#8884d8" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Revenue Chart</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="revenue" fill="#82ca9d" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </div>
+    </Layout>
   );
 }
