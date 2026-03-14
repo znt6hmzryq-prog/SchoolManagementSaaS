@@ -78,3 +78,38 @@ export const createCheckout = async (payload: any) => {
   const res = await api.post('/billing/checkout', payload);
   return res.data;
 };
+
+export const getClassPerformance = async () => {
+  const res = await api.get('/analytics/class-performance');
+  return res.data;
+};
+
+export const getStudentTrends = async () => {
+  const res = await api.get('/analytics/student-trends');
+  return res.data;
+};
+
+export const getAttendanceTrends = async () => {
+  const res = await api.get('/analytics/attendance-trends');
+  return res.data;
+};
+
+export const getAIInsights = async () => {
+  const res = await api.get('/analytics/ai-insights');
+  return res.data;
+};
+
+export const getReportCard = async (studentId: number) => {
+  const res = await api.get(`/report-cards/student/${studentId}`);
+  return res.data;
+};
+
+export const generateReportCard = async (studentId: number) => {
+  const res = await api.post(`/report-cards/generate/${studentId}`);
+  return res.data;
+};
+
+export const emailReportCard = async (studentId: number) => {
+  const res = await api.post(`/report-cards/email/${studentId}`);
+  return res.data;
+};

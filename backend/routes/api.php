@@ -32,6 +32,9 @@ use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\AITeacherAssistantController;
+use App\Http\Controllers\AnalyticsController as SchoolAnalyticsController;
+use App\Http\Controllers\ReportCardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -108,6 +111,17 @@ Route::middleware(['auth:sanctum','role:school_admin','school.scope','check.subs
     */
 
     Route::get('/admin/analytics/overview', [AnalyticsController::class, 'overview']);
+
+    // Extended analytics endpoints
+    Route::get('/analytics/class-performance', [SchoolAnalyticsController::class, 'classPerformance']);
+    Route::get('/analytics/student-trends', [SchoolAnalyticsController::class, 'studentTrends']);
+    Route::get('/analytics/attendance-trends', [SchoolAnalyticsController::class, 'attendanceTrends']);
+    Route::get('/analytics/ai-insights', [SchoolAnalyticsController::class, 'aiInsights']);
+
+    // Report Cards
+    Route::get('/report-cards/student/{student}', [ReportCardController::class, 'show']);
+    Route::post('/report-cards/generate/{student}', [ReportCardController::class, 'generate']);
+    Route::post('/report-cards/email/{student}', [ReportCardController::class, 'email']);
 
     /*
     |--------------------------------------------------------------------------
@@ -262,6 +276,23 @@ Route::middleware(['auth:sanctum','role:teacher','school.scope','check.subscript
         '/teacher/grades',
         [TeacherDashboardController::class, 'grades']
     );
+
+    // AI Teacher Assistant
+    Route::post(
+        '/ai/teacher-assistant',
+        [AITeacherAssistantController::class, 'generate']
+    );
+
+    // Report Cards (teacher)
+    Route::get('/report-cards/student/{student}', [ReportCardController::class, 'show']);
+    Route::post('/report-cards/generate/{student}', [ReportCardController::class, 'generate']);
+    Route::post('/report-cards/email/{student}', [ReportCardController::class, 'email']);
+
+    // Analytics endpoints for teachers
+    Route::get('/analytics/class-performance', [SchoolAnalyticsController::class, 'classPerformance']);
+    Route::get('/analytics/student-trends', [SchoolAnalyticsController::class, 'studentTrends']);
+    Route::get('/analytics/attendance-trends', [SchoolAnalyticsController::class, 'attendanceTrends']);
+    Route::get('/analytics/ai-insights', [SchoolAnalyticsController::class, 'aiInsights']);
 
 });
 
