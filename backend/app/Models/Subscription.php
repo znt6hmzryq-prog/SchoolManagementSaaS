@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Subscription extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'school_id',
         'stripe_customer_id',
@@ -21,6 +24,6 @@ class Subscription extends Model
 
     public function school()
     {
-        return $this->belongsTo(School::class);
+        return $this->belongsTo(School::class, 'school_id');
     }
 }

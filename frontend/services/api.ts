@@ -73,3 +73,8 @@ export const submitGrade = async (payload: any) => {
   const res = await api.post('/grades', payload);
   return res.data;
 };
+
+export const createCheckout = async (payload: any) => {
+  const res = await api.post('/billing/checkout', payload);
+  return res.data;
+};

@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\StripePaymentController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\FileController;
+use App\Http\Controllers\BillingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,6 +58,9 @@ Route::post(
     '/stripe/webhook',
     [StripeWebhookController::class, 'handle']
 );
+
+// Additional billing webhook endpoint (public)
+Route::post('/billing/webhook', [BillingController::class, 'webhook']);
 
 /*
 |--------------------------------------------------------------------------
@@ -95,7 +99,7 @@ Route::middleware(['auth:sanctum','role:super_admin','throttle:api'])->group(fun
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth:sanctum','role:school_admin','school.scope','throttle:api'])->group(function () {
+Route::middleware(['auth:sanctum','role:school_admin','school.scope','check.subscription','throttle:api'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
@@ -140,11 +144,16 @@ Route::middleware(['auth:sanctum','role:school_admin','school.scope','throttle:a
     | Billing
     |--------------------------------------------------------------------------
     */
-
+    // Legacy StripePaymentController checkout (kept for compatibility)
     Route::post(
         '/billing/subscribe',
         [StripePaymentController::class, 'createCheckoutSession']
     );
+
+    // New billing endpoints
+    Route::post('/billing/checkout', [BillingController::class, 'checkout']);
+    Route::get('/billing/subscription', [BillingController::class, 'subscription']);
+    Route::post('/billing/cancel', [BillingController::class, 'cancel']);
 
     /*
     |--------------------------------------------------------------------------
@@ -232,7 +241,7 @@ Route::middleware(['auth:sanctum','role:school_admin','school.scope','throttle:a
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth:sanctum','role:teacher','school.scope','throttle:api'])->group(function () {
+Route::middleware(['auth:sanctum','role:teacher','school.scope','check.subscription','throttle:api'])->group(function () {
 
     Route::get(
         '/teacher/dashboard',
@@ -262,7 +271,7 @@ Route::middleware(['auth:sanctum','role:teacher','school.scope','throttle:api'])
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth:sanctum','role:student','school.scope','throttle:api'])->group(function () {
+Route::middleware(['auth:sanctum','role:student','school.scope','check.subscription','throttle:api'])->group(function () {
 
     Route::get(
         '/student/dashboard',
@@ -297,7 +306,7 @@ Route::middleware(['auth:sanctum','role:student','school.scope','throttle:api'])
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth:sanctum','role:parent','school.scope','throttle:api'])->group(function () {
+Route::middleware(['auth:sanctum','role:parent','school.scope','check.subscription','throttle:api'])->group(function () {
 
     Route::get(
         '/parent/dashboard',
