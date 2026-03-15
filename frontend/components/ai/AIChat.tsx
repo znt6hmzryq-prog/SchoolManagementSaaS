@@ -20,9 +20,11 @@ export default function AIChat({ classId }: { classId?: number }) {
   const [loadingText, setLoadingText] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const mutation = useMutation(async (payload: any) => {
-    const res = await api.post('/ai/teacher-assistant', payload);
-    return res.data;
+  const mutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await api.post('/ai/teacher-assistant', payload);
+      return res.data;
+    }
   });
 
   useEffect(() => {

@@ -35,9 +35,12 @@ class AITeacherAssistantController extends Controller
         $studentPerformanceSummary = '';
 
         if (! empty($data['class_id'])) {
-            $class = ClassRoom::find($data['class_id']);
+            $class = ClassRoom::where('id', $data['class_id'])
+                ->where('school_id', $schoolId)
+                ->first();
+
             if (! $class) {
-                return response()->json(['message' => 'Class not found'], 404);
+                return response()->json(['message' => 'Class not found or not in your school'], 404);
             }
 
             $classInfo = [
@@ -46,17 +49,29 @@ class AITeacherAssistantController extends Controller
                 'academic_year_id' => $class->academic_year_id ?? null,
             ];
 
-            // Gather student ids for the class via sections
+            // Gather student ids for the class via sections (scoped to school)
             $sectionIds = $class->sections()->pluck('id')->toArray();
-            $students = Student::whereIn('section_id', $sectionIds)->get();
+            $students = Student::whereIn('section_id', $sectionIds)
+                ->where('school_id', $schoolId)
+                ->get();
             $studentIds = $students->pluck('id')->toArray();
 
-            // Compute simple performance summary
+            // Compute simple performance summary (scoped to school)
             $avgScore = null;
             if (! empty($studentIds)) {
-                $avgScore = Grade::whereIn('student_id', $studentIds)->avg('score');
-                $totalAttendance = Attendance::whereIn('student_id', $studentIds)->count();
-                $presentCount = Attendance::whereIn('student_id', $studentIds)->where('status', 'present')->count();
+                $avgScore = Grade::whereIn('student_id', $studentIds)
+                    ->where('school_id', $schoolId)
+                    ->avg('score');
+
+                $totalAttendance = Attendance::whereIn('student_id', $studentIds)
+                    ->where('school_id', $schoolId)
+                    ->count();
+
+                $presentCount = Attendance::whereIn('student_id', $studentIds)
+                    ->where('school_id', $schoolId)
+                    ->where('status', 'present')
+                    ->count();
+
                 $attendanceRate = $totalAttendance > 0 ? round(($presentCount / $totalAttendance) * 100, 2) : null;
 
                 $studentPerformanceSummary = "Students: " . count($studentIds) . ", Average Score: " . ($avgScore !== null ? round($avgScore,2) : 'N/A') . ", Attendance Rate: " . ($attendanceRate !== null ? $attendanceRate . '%' : 'N/A');

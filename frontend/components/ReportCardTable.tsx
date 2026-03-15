@@ -5,8 +5,8 @@ import { useMutation } from '@tanstack/react-query';
 import { generateReportCard, emailReportCard } from '../services/api';
 
 export default function ReportCardTable({ students }: { students: any[] }) {
-  const generateMutation = useMutation((id: number) => generateReportCard(id));
-  const emailMutation = useMutation((id: number) => emailReportCard(id));
+  const generateMutation: any = useMutation({ mutationFn: (id: number) => generateReportCard(id) });
+  const emailMutation: any = useMutation({ mutationFn: (id: number) => emailReportCard(id) });
 
   const handleGenerate = async (id: number) => {
     const res = await generateMutation.mutateAsync(id);
